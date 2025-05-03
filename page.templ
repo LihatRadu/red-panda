@@ -1,0 +1,34 @@
+package main
+
+
+templ ErrorMessage(message string){
+    if message != "" {
+        <div class="error">
+           {message}
+        </div>
+    }
+}
+
+templ indexPage() {
+    <!DOCTYPE html>
+    <html>
+       <head>
+          <link rel="stylesheet" href="/static/style.css"/>
+       </head>
+       <body>
+          <main class="">
+             <h1>Red Panda</h1>
+             <p>Your most helpful image converter!</p>
+
+             <div class="">
+               <p>Upload a PNG file to convert it to JPG.</p>
+             </div>
+
+             <form action="/convert" method="post" enctype="multipart/form-data" class="">
+                <input type="file" name="file" accept="image/png" required/>
+                <button type="submit">Convert</button>
+             </form>
+          </main>
+       </body>
+    </html>
+}
