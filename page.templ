@@ -14,6 +14,7 @@ templ indexPage() {
     <html>
        <head>
           <link rel="stylesheet" href="/static/style.css"/>
+          <script src="/static/script.js" defer></script>
        </head>
        <body>
           <main class="container">
@@ -24,9 +25,14 @@ templ indexPage() {
                <p>Upload a PNG file to convert it to JPG.</p>
              </div>
 
-             <form action="/convert" method="post" enctype="multipart/form-data" class="upload-form">
-                <input type="file" name="file" accept="image/png" required/>
-                <button type="submit">Convert</button>
+             <form id="uploadForm" action="/convert" method="post" enctype="multipart/form-data" class="upload-form">
+                <input type="file" name="file" accept=".png,.jpg,.jpeg,.webp,.svg,.gif,.tiff,.tif,.bmp,.psd" id="fileInput" required/>
+                <div class="progress-container" id="progressContainer">
+                  <div class="progress-bar" id="progressBar"></div>
+                  <span class="progress-text" id="progressText">0%</span>
+                </div>
+                <button type="submit" id="convertButton">Convert</button>
+                <div class="status" id="statusMessage"></div>
              </form>
           </main>
        </body>
