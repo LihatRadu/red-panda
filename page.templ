@@ -24,7 +24,7 @@ templ indexPage() {
                <p>Upload a PNG file to convert it to JPG.</p>
              </div>
 
-             <form action="/convert" method="post" enctype="multipart/form-data" class="">
+             <form action="/convert" method="post" enctype="multipart/form-data" class="upload-form">
                 <input type="file" name="file" accept="image/png" required/>
                 <button type="submit">Convert</button>
              </form>

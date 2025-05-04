@@ -73,7 +73,7 @@ func indexPage() templ.Component {
 			templ_7745c5c3_Var3 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<!doctype html><html><head><link rel=\"stylesheet\" href=\"/static/style.css\"></head><body><main class=\"container\"><h1 class=\"title\">Red Panda</h1><p class=\"description\">Your most helpful image converter!</p><div class=\"instructions\"><p>Upload a PNG file to convert it to JPG.</p></div><form action=\"/convert\" method=\"post\" enctype=\"multipart/form-data\" class=\"\"><input type=\"file\" name=\"file\" accept=\"image/png\" required> <button type=\"submit\">Convert</button></form></main></body></html>")
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<!doctype html><html><head><link rel=\"stylesheet\" href=\"/static/style.css\"></head><body><main class=\"container\"><h1 class=\"title\">Red Panda</h1><p class=\"description\">Your most helpful image converter!</p><div class=\"instructions\"><p>Upload a PNG file to convert it to JPG.</p></div><form action=\"/convert\" method=\"post\" enctype=\"multipart/form-data\" class=\"upload-form\"><input type=\"file\" name=\"file\" accept=\"image/png\" required> <button type=\"submit\">Convert</button></form></main></body></html>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
