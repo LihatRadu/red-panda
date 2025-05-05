@@ -5,6 +5,7 @@ import (
 	"image"
 	"image/draw"
 	"image/gif"
+	"image/png"
 	"io"
 	"log"
 	"net/http"
@@ -18,7 +19,8 @@ import (
 	"github.com/srwiley/oksvg"
 	"github.com/srwiley/rasterx"
 	"golang.org/x/image/tiff"
-	"golang.org/x/image/webp"
+    //"golang.org/x/image/webp"
+    //"github.com/chai2010/webp"
 )
 
 const (
@@ -39,6 +41,15 @@ var supportedFormats = map[string]bool{
     ".gif": true,
     ".psd": true,
 }
+
+var outputFormats = []string{"jpg", "png", "webp", "gif", "bmp"}
+
+type ConversionRequest struct{
+    File []byte
+    Filename string
+    Format string
+}
+
 func convertHandler(w http.ResponseWriter, r *http.Request)  {
    
    if r.Method != http.MethodPost {
@@ -64,6 +75,13 @@ func convertHandler(w http.ResponseWriter, r *http.Request)  {
         return
     }
     defer file.Close()
+
+    outputFormat := r.FormValue("format")
+    if !contains(outputFormats, outputFormat) {
+        delete(progress, fileID)
+        http.Error(w, "", http.StatusBadRequest)
+        return
+    }
 
     filename := header.Filename
     ext := strings.ToLower(filepath.Ext(filename))
@@ -91,7 +109,7 @@ func convertHandler(w http.ResponseWriter, r *http.Request)  {
     }
     progress[fileID] = 40
 
-    convertedPath, err := convertToJPG(uploadPath, fileID)
+    convertedPath, err := convertToJPG(uploadPath, fileID, outputFormat)
     if err != nil {
         delete(progress, fileID)
         http.Error(w, "Failed conversion", http.StatusBadRequest)
@@ -109,8 +127,9 @@ func convertHandler(w http.ResponseWriter, r *http.Request)  {
 
     progress[fileID] = 100
 
-    w.Header().Set("Content-Type", "image/jpeg")
-    w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", strings.TrimSuffix(filename, ext) + ".jpg"))
+    contentType := getContentType(outputFormat)
+    w.Header().Set("Content-Type", contentType)
+    w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", strings.TrimSuffix(filename, ext) + "." + outputFormat))
     io.Copy(w, convertedFile)
 
     go func() {
@@ -119,7 +138,7 @@ func convertHandler(w http.ResponseWriter, r *http.Request)  {
     }()
 }
 
-func convertToJPG(inputPath, fileID string) (string, error) {
+func convertToJPG(inputPath, fileID, outputFormat string) (string, error) {
 
     ext := strings.ToLower(filepath.Ext(inputPath))
     var img image.Image
@@ -141,7 +160,7 @@ func convertToJPG(inputPath, fileID string) (string, error) {
          return "", err
        }
        defer f.Close()
-       img, err = webp.Decode(f)
+//       img, err = webp.Decode(f)
     case ".svg":
        icon, err := oksvg.ReadIcon(inputPath)
        if err != nil {
@@ -171,7 +190,7 @@ func convertToJPG(inputPath, fileID string) (string, error) {
 
     progress[fileID] = 60
 
-    outputFilename := strings.TrimSuffix(filepath.Base(inputPath), ext) + ".jpg"
+    outputFilename := strings.TrimSuffix(filepath.Base(inputPath), ext) + "." + outputFormat
     outputPath := filepath.Join(convertedDir, outputFilename)
 
     progress[fileID] = 80
@@ -179,6 +198,21 @@ func convertToJPG(inputPath, fileID string) (string, error) {
     err = imaging.Save(img, outputPath, imaging.JPEGQuality(90))
     if err != nil {
         return "", fmt.Errorf("failed to save image: %v", err)
+    }
+
+    switch outputFormat {
+    case "jpg", "jpeg":
+        err = imaging.Save(img, outputPath, imaging.JPEGQuality(90))
+    case "png":
+        err = imaging.Save(img, outputPath, imaging.PNGCompressionLevel(png.DefaultCompression))
+    case "webp":
+     //   err = imaging.Save(img, outputPath, imaging.WebPQuality(90))
+    case "gif":
+        err = imaging.Save(img, outputPath)
+    case "bmp":
+       err = imaging.Save(img, outputPath)
+    default:
+       return "", fmt.Errorf("unsupported output format: %s", outputFormat)
     }
     return outputPath,  nil
 }
@@ -192,6 +226,32 @@ func progressHandler(w http.ResponseWriter, r *http.Request)  {
         return
     }
     fmt.Fprintf(w, "0")
+}
+
+func getContentType(format string) string {
+    switch format {
+    case "jpg", "jpeg":
+        return "image/jpeg"
+    case "png":
+       return "image/png"
+    case "webp":
+       return "image/webp"
+    case "gif":
+      return "image/gif"
+    case "bmp":
+      return "image/bmp"
+    default:
+       return "application/octet-stream"
+    }
+}
+
+func contains(slice []string, item string) bool {
+    for _, s := range slice {
+        if s == item {
+            return true
+        }
+    }
+    return false
 }
 
 func main()  {

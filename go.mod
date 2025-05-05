@@ -6,6 +6,7 @@ toolchain go1.23.8
 
 require (
 	github.com/a-h/templ v0.3.865
+	github.com/chai2010/webp v1.4.0
 	github.com/disintegration/imaging v1.6.2
 	github.com/srwiley/oksvg v0.0.0-20221011165216-be6e8873101c
 	github.com/srwiley/rasterx v0.0.0-20220730225603-2ab79fcdd4ef

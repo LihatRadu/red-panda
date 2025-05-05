@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const progressText = document.getElementById('progressText');
     const statusMessage = document.getElementById('statusMessage');
     const convertButton = document.getElementById('convertButton');
+    const formatSelect = document.getElementById('formatSelect');
 
     let fileID = null;
     let progressInterval = null;
@@ -29,6 +30,8 @@ document.addEventListener('DOMContentLoaded', () => {
         progressText.textContent = '0%';
 
         fileID = Date.now().toString();
+
+        const format = formatSelect.value;
         const formData = new FormData(form);
         formData.append('fileID', fileID);
 
@@ -44,7 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
             clearInterval(progressInterval);
 
             if (response.ok) {
-                const filename = fileInput.files[0].name.replace(/\.[^/.]+$/, "") + ".jpg";
+                const filename = fileInput.files[0].name.replace(/\.[^/.]+$/, "") + "." + format;
                 const blob = await response.blob();
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');

@@ -95,3 +95,26 @@
     min-height: 1.5rem;
     font-size: 0.9rem;
 }
+
+.form-group{
+    margin-bottom: 1rem;
+}
+.form-group label{
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
+select{
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 1rem;
+}
+
+select:focus{
+    outline: none;
+    border-color: #3498db;
+    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+}
