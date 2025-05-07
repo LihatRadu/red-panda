@@ -19,6 +19,7 @@ import (
 	"github.com/srwiley/oksvg"
 	"github.com/srwiley/rasterx"
 	"golang.org/x/image/tiff"
+    "github.com/h2non/filetype"
     //"golang.org/x/image/webp"
     //"github.com/chai2010/webp"
 )
@@ -71,10 +72,17 @@ func convertHandler(w http.ResponseWriter, r *http.Request)  {
     file, header, err := r.FormFile("file")
     if err !=nil {
         delete(progress, fileID)
-        http.Error(w, "", http.StatusBadRequest)
+        http.Error(w, "Invalid file upload", http.StatusBadRequest)
         return
     }
     defer file.Close()
+
+    if err := validateFileSize(header.Size); err != nil {
+        delete(progress, fileID)
+        http.Error(w, err.Error(), http.StatusBadRequest)
+        return
+    }
+
 
     outputFormat := r.FormValue("format")
     if !contains(outputFormats, outputFormat) {
@@ -83,12 +91,24 @@ func convertHandler(w http.ResponseWriter, r *http.Request)  {
         return
     }
 
-    filename := header.Filename
+    filename := sanitizeFilename(header.Filename)
     ext := strings.ToLower(filepath.Ext(filename))
     if !supportedFormats[ext] {
         delete(progress, fileID)
-        http.Error(w, "Only PNG files allowed", http.StatusBadRequest)
+        http.Error(w, "Unsupported file format", http.StatusBadRequest)
         return
+    }
+
+    if err := validateMIMEType(file, filename); err != nil {
+        delete(progress, fileID)
+        http.Error(w, err.Error(), http.StatusBadRequest)
+        return
+    }
+
+    if err := validateFileSignature(file, ext); err != nil {
+       delete(progress, fileID)
+       http.Error(w, err.Error(), http.StatusBadRequest)
+       return
     }
     progress[fileID] = 20
 
@@ -162,6 +182,17 @@ func convertToJPG(inputPath, fileID, outputFormat string) (string, error) {
        defer f.Close()
 //       img, err = webp.Decode(f)
     case ".svg":
+//       svgFile.Seek(0,0)
+        svgFile, err := os.Open(inputPath)
+        if err != nil {
+            return "", err
+        }
+        defer svgFile.Close()
+
+        if err := validateSVG(svgFile); err != nil {
+            return "", fmt.Errorf("Invalid SVG: %v", err)
+        }
+        svgFile.Seek(0,0)
        icon, err := oksvg.ReadIcon(inputPath)
        if err != nil {
          return "", err
@@ -252,6 +283,90 @@ func contains(slice []string, item string) bool {
         }
     }
     return false
+}
+
+func validateFileSignature(file io.ReadSeeker, expectedExt string) error {
+    header := make([]byte, 512)
+    _, err := file.Read(header)
+    if err != nil {
+        return fmt.Errorf("failed to read file header")
+    }
+    file.Seek(0,0)
+
+    kind, err := filetype.Match(header)
+    if err != nil {
+        return fmt.Errorf("failed to detect the type of the file")
+    }
+
+    allowedTypes := map[string]string{
+        ".png":  "image/png",
+        ".jpg":  "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".gif":  "image/gif",
+        ".bmp":  "image/bmp",
+        ".tiff": "image/tiff",
+        ".webp": "image/webp",
+    }
+
+    expectedMIME, ok := allowedTypes[expectedExt]
+    if !ok {
+        return fmt.Errorf("unsupported file extension.")
+    }
+
+    if kind.MIME.Value != expectedMIME {
+        return fmt.Errorf("file content does not match the extension. Expected %s instead of %s", expectedMIME, kind.MIME.Value)
+    }
+
+    return nil
+}
+
+func validateMIMEType(file io.ReadSeeker, filename string) error {
+    
+//    ext := strings.ToLower(filepath.Ext(filename))
+
+    buffer := make([]byte, 512)
+    _, err := file.Read(buffer)
+    if err != nil {
+        return fmt.Errorf("failed to read MIME for file detection.")
+    }
+    file.Seek(0,0)
+
+    mimeType := http.DetectContentType(buffer)
+
+    allowedMIMEs := map[string]bool{
+        "image/png":              true,
+        "image/jpeg":             true,
+        "image/gif":              true,
+        "image/bmp":              true,
+        "image/tiff":             true,
+        "image/webp":             true,
+        "application/octet-stream": true, // For some image types
+    }
+
+    if !allowedMIMEs[mimeType] {
+        return fmt.Errorf("invalid MIME type: %s", mimeType)
+    }
+
+    return nil
+}
+
+func validateFileSize(size int64) error {
+    
+    if size > maxUploadSize {
+        return fmt.Errorf("file size has been exceeded the limit of %d bytes.", maxUploadSize)
+    }
+
+    return nil
+}
+
+func sanitizeFilename(filename string) string {
+    
+    filename = filepath.Base(filename)
+    filename = strings.ReplaceAll(filename, "/", "_")
+    filename = strings.ReplaceAll(filename, "\\", "_")
+    filename = strings.ReplaceAll(filename, ":", "_")
+
+    return filename
 }
 
 func main()  {
